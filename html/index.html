@@ -1,0 +1,9 @@
+<head>
+    <script src="./lib/htmx.min.js"></script>
+    <link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div hx-get="/components/navbar.html" hx-trigger="load once"></div>
+    <div class="main" hx-get="/pages/home.html" hx-trigger="load once"></div>
+</body>
+</html>
