@@ -1,6 +1,8 @@
 use axum::{
     extract::Json,
+    response::Html,
     routing::post,
+    routing::get,
     Router,
 };
 use serde::Deserialize;
@@ -13,20 +15,25 @@ struct GetText {
 use regex::Regex;
 use std::time::Instant;
 
-async fn get_text(Json(GetText { line }): Json<GetText>) {
-    send_to_purgatory(&line);
+
+async fn home() -> Html<&'static str> {
+    Html("<html><body>Hello <b>Woooooooorld!</b></body></html>")
+}
+
+async fn get_text(Json(GetText { line }): Json<GetText>) -> Html<&'static str> {
+    Html("<html><body>POST request received!</body></html>")
 }
 
 #[tokio::main]
 async fn main() {
+    let app = Router::new()
+        .route("/", get(home))
+        .route("/testing", post(get_text));
 
-    let app = Router::new().route("/testing", post(get_text));
-
-    axum::Server::bind(&"127.0.0.1:8080".parse().unwrap())
+    axum::Server::bind(&"127.0.0.1:3000".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
-    
 }
 
 fn send_to_purgatory(text: &str) {
