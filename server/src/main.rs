@@ -8,9 +8,9 @@ use std::time::Instant;
 #[tokio::main]
 async fn main() {
 
-    let text = ";
+    let text = "
     $test = \"Hello\";
-    if ($text == \"Hello\" && $text = \"Hello\") {
+    if ($text = \"Hello\" && $test != \"Hello\") {
         echo 'Hi!!';
     }
     $newline = 0;
@@ -18,6 +18,8 @@ async fn main() {
 
     println!("Issues:");
 
+    let total_time = Instant::now();
+    
     let start_time = Instant::now();
     variable_check(text);
     let end_time = Instant::now();
@@ -42,8 +44,18 @@ async fn main() {
     let elapsed_time = end_time.duration_since(start_time);
     let condition_timer = elapsed_time.as_secs_f64();
 
+    let start_time = Instant::now();
+    string_check(text);
+    let end_time = Instant::now();
+    let elapsed_time = end_time.duration_since(start_time);
+    let string_timer = elapsed_time.as_secs_f64();
 
-    println!("\nElapsed times (Milliseconds):\nVariables: {}\nDelimiter: {}\nSemicolon: {}\nConditions: {}", variable_timer, delimiter_timer, semicolon_timer, condition_timer);
+    println!("\nElapsed times (Milliseconds):\nVariables: {}\nDelimiter: {}\nSemicolon: {}\nConditions: {}\nStrings: {}", variable_timer, delimiter_timer, semicolon_timer, condition_timer, string_timer);
+
+    let total_end_time = Instant::now();
+    let elapsed_time = total_end_time.duration_since(total_time);
+    let the_end_timer = elapsed_time.as_secs_f64();
+    println!("Total time taken: {}", the_end_timer);
 
     // let app = Router::new().route("/", get(|| async { "Hello, World!" }));
 
@@ -82,26 +94,33 @@ fn delimiter_check(text: &str) {
 
 fn condition_check(text: &str) {
 
-    // ==, !=
-    let cond_reg = Regex::new(r"if.*\(.*=\)").unwrap();
-    let cond_eq_reg = Regex::new(r".*[^=]=[^=].*").unwrap();
-    let cond_neq_reg = Regex::new(r".*[^!]=.*").unwrap();
-    for condition in cond_reg.find_iter(text) {
-        if let Some(_capture) = cond_eq_reg.find(text) {
-            continue;
+    let cond_reg = Regex::new(r"if.*\(.*=.*\)").unwrap(); // if statement
+    let eq_reg = Regex::new(r"[^=!]=[^=]").unwrap(); // =
+
+    for if_state in cond_reg.find_iter(text) {
+        for eq in eq_reg.find_iter(if_state.as_str()) {
+            println!("'{}' needs another operand (try != or ==)", eq.as_str());
         }
-        if let Some(_capture) = cond_neq_reg.find(text) {
-            continue;
-        }
-        
-        println!("'{}' is missing another operand (needs == or !=)", condition.as_str())
     }
 }
 
 fn semicolon_check(text: &str) {
-    // let semistring_reg = Regex::new(r"(?s)[^=]=\s[^=](.*[^;])").unwrap();
+    // let semistring_reg = Regex::new(r"=([^;]*);").unwrap();
 
     // for semicolon in semistring_reg.find_iter(text) {
     //     println!("Needs a semi-colon: {}", semicolon.as_str());
     // }
+}
+
+fn string_check(text: &str) {
+    let ministring_reg = Regex::new(r"(?s)'.*?'").unwrap();
+
+    let biggistring_reg = Regex::new(r#"(?s)".*?""#).unwrap();
+
+    for stringsmol in ministring_reg.find_iter(text) {
+        println!("Found a string: {}", stringsmol.as_str());
+    }
+    for stringbig in biggistring_reg.find_iter(text) {
+        println!("Found a string: {}", stringbig.as_str());
+    }
 }
