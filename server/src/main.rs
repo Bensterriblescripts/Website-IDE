@@ -1,78 +1,94 @@
-use axum::{
-    extract::Json,
-    response::Html,
-    routing::post,
-    routing::get,
-    Router,
-};
-use serde::Deserialize;
+// use axum::{
+//     extract::Json,
+//     response::Html,
+//     routing::post,
+//     routing::get,
+//     Router,
+// };
+// use serde::Deserialize;
 
-#[derive(Deserialize)]
-struct GetText {
-    line: String
-}
+// #[derive(Deserialize)]
+// struct GetText {
+//     line: String
+// }
 
 use regex::Regex;
 use std::time::Instant;
 
 
-async fn home() -> Html<&'static str> {
-    Html("<html><body>Hello <b>Woooooooorld!</b></body></html>")
-}
+// async fn home() -> Html<&'static str> {
+//     Html("<html><body>Hello <b>Woooooooorld!</b></body></html>")
+// }
 
-async fn get_text(Json(GetText { line }): Json<GetText>) -> Html<&'static str> {
-    Html("<html><body>POST request received!</body></html>")
-}
+// async fn get_text(Json(GetText { line }): Json<GetText>) -> Html<&'static str> {
+//     let output = send_to_purgatory(&line);
+//     Html(format!("Output: {}", output.as_str()))
+// }
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new()
-        .route("/", get(home))
-        .route("/testing", post(get_text));
 
-    axum::Server::bind(&"127.0.0.1:3000".parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+
+    let text = "
+    $string = \"Hello\";
+    if ($string == \"Hello\") {
+        echo 'Hi!!';
+    }
+    ";
+
+    let var = send_to_purgatory(text);
+
+    println!("Returned: {}", var);
+
+
+
+    // let app = Router::new()
+    //     .route("/", get(home))
+    //     .route("/testing", post(get_text));
+
+    // axum::Server::bind(&"127.0.0.1:3000".parse().unwrap())
+    //     .serve(app.into_make_service())
+    //     .await
+    //     .unwrap();
 }
 
-fn send_to_purgatory(text: &str) {
+fn send_to_purgatory(text: &str) -> String {
 
     println!("Issues:");
     let total_time = Instant::now();
     
     let start_time = Instant::now();
-    let var = variable_check(text);
+    let var = variable_check(&text);
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);
     let variable_timer = elapsed_time.as_secs_f64();
 
     let start_time = Instant::now();
-    let delimiter = delimiter_check(text);
+    let delimiter = delimiter_check(&text);
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);
     let delimiter_timer = elapsed_time.as_secs_f64();
 
     let start_time = Instant::now();
-    let semicolon = semicolon_check(text);
+    let semicolon = semicolon_check(&text);
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);
     let semicolon_timer = elapsed_time.as_secs_f64();
 
     let start_time = Instant::now();
-    let condition = condition_check(text);
+    let condition = condition_check(&text);
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);
     let condition_timer = elapsed_time.as_secs_f64();
 
     let start_time = Instant::now();
-    let string = string_highlight(text);
+    let string = string_highlight(&text);
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);
     let string_timer = elapsed_time.as_secs_f64();
 
     let start_time = Instant::now();
-    let function = function_check(text);
+    let function = function_check(&text);
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);
     let function_timer = elapsed_time.as_secs_f64();
@@ -84,14 +100,18 @@ fn send_to_purgatory(text: &str) {
     let the_end_timer = elapsed_time.as_secs_f64();
     println!("Total time taken: {}", the_end_timer);
 
+    return var;
+
 }
 
 /* ********************/
 /* Checks start here! */
 /* ********************/
 
-fn variable_check(text: &str) {
-    // If it needs to be declared
+fn variable_check(text: &str) -> String {
+
+    let mut var = String::new();
+
     let var_reg = Regex::new(r"\$[a-zA-Z_][a-zA-Z0-9_]*").unwrap();
     for variable in var_reg.find_iter(text) {
         println!("Found a variable: {}", variable.as_str()); // Highlighting
@@ -100,8 +120,11 @@ fn variable_check(text: &str) {
         if let Some(_capture) = call.find(text) {
             continue;
         }
-        println!("{} is not set as a variable, declare it somewhere", variable.as_str())
+        println!("{} is not set as a variable, declare it somewhere", variable.as_str());
+        let mut var = variable.as_str().to_string();
     }
+
+    return var;
 }
 
 fn delimiter_check(text: &str) {
