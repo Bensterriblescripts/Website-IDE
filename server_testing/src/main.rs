@@ -79,14 +79,14 @@ async fn main() {
     // let elapsed_time = end_time.duration_since(start_time);
     // let condition_timer = elapsed_time.as_secs_f64();
 
-    // Strings - Type 1
-    // let mut text = String::from(text);
-    // let start_time = Instant::now();
-    // let strings = double_string_highlight(&text);
-    // let end_time = Instant::now();
-    // let elapsed_time = end_time.duration_since(start_time);
-    // let string_timer = elapsed_time.as_secs_f64();
-    // println!("String time elapsed: {}", string_timer);
+    // Strings
+    let start_time = Instant::now();
+    updates.append(&mut single_string_check(&text));
+    updates.append(&mut double_string_check(&text));
+    let end_time = Instant::now();
+    let elapsed_time = end_time.duration_since(start_time);
+    let string_timer = elapsed_time.as_secs_f64();
+    println!("String time elapsed: {}", string_timer);
 
     // let start_time = Instant::now();
     // let functions = function_check(&text);
@@ -95,9 +95,26 @@ async fn main() {
     // let function_timer = elapsed_time.as_secs_f64();
 
     // Create the new text string
-    updates.sort_by(|a, b| b.cmp(a));
+    updates.sort_by(|a, b| a.cmp(b));
     for update in updates.iter().rev() {
-        println!("Vectors: {}", update[0]);
+
+        // Variable highlight
+        if update[2] == 0 {
+            println!("Variable found {}, {}", update[0], update[1]);
+        }
+        // Variable highlight + error
+        else if update[2] == 1 {
+            println!("Variables {}, {} need to be declared ", update[0], update[1])
+        }
+        // String highlight ''
+        else if update[2] == 2 {
+            println!("Single quote string found {}, {}", update[0], update[1])
+        }
+        // String highlight ""
+        else if update[2] == 3 {
+            println!("Double quote string found {}, {}", update[0], update[1])
+        }
+        
     }
 
     // Done!
@@ -107,9 +124,6 @@ async fn main() {
     println!("Total time taken: {}", the_end_timer);
 
     println!("New text: {}", text);
-
-    println!("Variables vector: {:?}", updates);
-
 
 
     // let app = Router::new()
@@ -128,8 +142,6 @@ async fn main() {
 
 fn variable_check(text: &str) -> Vec<Vec<usize>> {
 
-
-
     let mut variables = Vec::new();
     let variable_highlight_code: usize = 0;
     let variable_error_code: usize = 1;
@@ -143,8 +155,8 @@ fn variable_check(text: &str) -> Vec<Vec<usize>> {
         if let Some(_capture) = call.find(&text) {
             let variable_vec = vec![variable.start(), variable.end(), variable_highlight_code];
             variables.push(variable_vec);
-    
-            println!("Variable starts at: {}", variable.as_str());
+            println!("Variable found at: {}", variable.as_str());
+            continue
         }
 
         let variable_vec = vec![variable.start(), variable.end(), variable_error_code];
@@ -198,38 +210,39 @@ fn variable_check(text: &str) -> Vec<Vec<usize>> {
     //     println!("Needs a semi-colon: {}", semicolon.as_str());
     // }
 // }
+fn single_string_check(text: &str) -> Vec<Vec<usize>> {
 
-fn double_string_highlight(text: &str) -> Vec<Vec<usize>> {
+    let mut strings = Vec::new();
+    let single_strings_code: usize = 2;
 
-    let mut highlights = Vec::new();
+    let small_string_reg = Regex::new(r"(?s)'.*?'").unwrap(); // Regex: Anything in between ''
 
-    let biggistring_reg = Regex::new(r#"(?s)".*?""#).unwrap(); // Regex: Anything inbetween "" 
+    for string in small_string_reg.find_iter(text) {
 
-    for big_string in biggistring_reg.find_iter(text) {
+        let small_string_vec = vec![string.start(), string.end(), single_strings_code];
+        strings.push(small_string_vec);
 
-        let small_string_vec = vec![big_string.start(), big_string.end()];
-        highlights.push(small_string_vec);
-
-        println!("Found a string: {}", big_string.as_str());
+        println!("Found a string: {}", string.as_str());
     }
 
-    return highlights
+    return strings
 }
-fn single_string_highlight(text: &str) -> Vec<Vec<usize>> {
+fn double_string_check(text: &str) -> Vec<Vec<usize>> {
 
-    let mut highlights = Vec::new();
+    let mut strings = Vec::new();
+    let double_strings_code: usize = 3;
 
-    let ministring_reg = Regex::new(r"(?s)'.*?'").unwrap(); // Regex: Anything in between ''
+    let big_string_reg = Regex::new(r#"(?s)".*?""#).unwrap(); // Regex: Anything inbetween "" 
 
-    for small_string in ministring_reg.find_iter(text) {
+    for string in big_string_reg.find_iter(text) {
 
-        let small_string_vec = vec![small_string.start(), small_string.end()];
-        highlights.push(small_string_vec);
+        let small_string_vec = vec![string.start(), string.end(), double_strings_code];
+        strings.push(small_string_vec);
 
-        println!("Found a string: {}", small_string.as_str());
+        println!("Found a string: {}", string.as_str());
     }
 
-    return highlights
+    return strings
 }
 
 // fn function_check(text: &str) -> Vec<String> {
