@@ -543,6 +543,7 @@ dependencies = [
  "axum",
  "regex",
  "serde",
+ "string",
  "tokio",
 ]
 
@@ -579,6 +580,15 @@ checksum = "2538b18701741680e0322a2302176d3253a35388e2e62f172f64f4f16605f877"
 dependencies = [
  "libc",
  "windows-sys",
+]
+
+[[package]]
+name = "string"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a984fb878618df5d8df7a476085310472dfd6eee03c5e4b35feb689066b1c1e6"
+dependencies = [
+ "bytes",
 ]
 
 [[package]]
