@@ -49,23 +49,16 @@ async fn main() {
     println!("Issues:");
     let total_time = Instant::now();
 
+    let mut updates: Vec<Vec<usize>> = Vec::new();
+
     // Variables
+    // 0 - Highlighting
+    // 1 - Errors
     let start_time = Instant::now();
-    let variables = variable_check(&text);
+    updates.append(&mut variable_check(&text));
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);
     let variable_timer = elapsed_time.as_secs_f64();
-    let mut text = String::from(text);
-    for variable in variables.0.iter().rev() {
-        if !variables.1.contains(variable) {
-            text.insert_str(variable[1], &html_end);
-            text.insert_str(variable[0], &html_var);
-        }
-        else {
-            text.insert_str(variable[1], &html_end);
-            text.insert_str(variable[0], &html_var_err);
-        }
-    }
     println!("Variables time elapsed: {}", variable_timer);
 
     // let start_time = Instant::now();
@@ -86,18 +79,14 @@ async fn main() {
     // let elapsed_time = end_time.duration_since(start_time);
     // let condition_timer = elapsed_time.as_secs_f64();
 
-    // Strings
-    let start_time = Instant::now();
-    let strings = double_string_highlight(&text);
-    let end_time = Instant::now();
-    let elapsed_time = end_time.duration_since(start_time);
-    let string_timer = elapsed_time.as_secs_f64();
-    let mut text = String::from(text);
-    for string in strings.iter().rev() {
-        text.insert_str(string[1], &html_end);
-        text.insert_str(string[0], &html_string);
-    }
-    println!("String time elapsed: {}", string_timer);
+    // Strings - Type 1
+    // let mut text = String::from(text);
+    // let start_time = Instant::now();
+    // let strings = double_string_highlight(&text);
+    // let end_time = Instant::now();
+    // let elapsed_time = end_time.duration_since(start_time);
+    // let string_timer = elapsed_time.as_secs_f64();
+    // println!("String time elapsed: {}", string_timer);
 
     // let start_time = Instant::now();
     // let functions = function_check(&text);
@@ -105,12 +94,21 @@ async fn main() {
     // let elapsed_time = end_time.duration_since(start_time);
     // let function_timer = elapsed_time.as_secs_f64();
 
+    // Create the new text string
+    updates.sort_by(|a, b| b.cmp(a));
+    for update in updates.iter().rev() {
+        println!("Vectors: {}", update[0]);
+    }
+
+    // Done!
     let total_end_time = Instant::now();
     let elapsed_time = total_end_time.duration_since(total_time);
     let the_end_timer = elapsed_time.as_secs_f64();
     println!("Total time taken: {}", the_end_timer);
 
     println!("New text: {}", text);
+
+    println!("Variables vector: {:?}", updates);
 
 
 
@@ -128,33 +126,34 @@ async fn main() {
 /* Checks start here! */
 /* ********************/
 
-fn variable_check(text: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
+fn variable_check(text: &str) -> Vec<Vec<usize>> {
 
-    let mut highlights = Vec::new();
-    let mut errors = Vec::new();
+
+
+    let mut variables = Vec::new();
+    let variable_highlight_code: usize = 0;
+    let variable_error_code: usize = 1;
 
     let var_reg = Regex::new(r"\$[a-zA-Z_][a-zA-Z0-9_]*").unwrap(); // Regex: Any word starting with $
 
     for variable in var_reg.find_iter(&text) {
 
-        let variable_vec = vec![variable.start(), variable.end()];
-        highlights.push(variable_vec);
-
-        println!("Variable starts at: {}", variable.as_str());
-
         let call_reg: String = format!(r"{}\s?=[^=].*;", regex::escape(variable.as_str())); // Regex: Find the existing variable in a place that has a single =
         let call = Regex::new(&call_reg).unwrap();
         if let Some(_capture) = call.find(&text) {
-            continue;
+            let variable_vec = vec![variable.start(), variable.end(), variable_highlight_code];
+            variables.push(variable_vec);
+    
+            println!("Variable starts at: {}", variable.as_str());
         }
 
-        let variable_vec = vec![variable.start(), variable.end()];
-        errors.push(variable_vec);
+        let variable_vec = vec![variable.start(), variable.end(), variable_error_code];
+        variables.push(variable_vec);
 
         println!("Variable needs to be declared: {}", variable.as_str());
     }
 
-    return (highlights, errors);
+    return variables;
 
 }
 
