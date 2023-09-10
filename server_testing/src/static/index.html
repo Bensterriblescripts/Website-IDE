@@ -1,0 +1,17 @@
+<html lang="en">
+    <head>
+        <script src="/lib"></script>
+        <link rel="stylesheet" href="/styles">
+        <title>PHP - IDE</title>
+        <link rel="icon" type="image/x-icon" href="/assets/photos/PC_Plant-Branch_Full-Colour.png">
+    </head>
+    <body>
+        <div hx-get="/navbar" hx-trigger="load once"></div>
+        <div class="main">
+            <textarea id="editor"
+             hx-post="/lsp"  name="content"  hx-target="#editor" hx-trigger="keyup[keyCode==13]" 
+            placeholder="Write your php in here...">
+            </textarea>
+        </div>
+    </body>
+</html>

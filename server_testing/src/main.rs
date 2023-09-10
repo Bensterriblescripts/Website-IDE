@@ -1,65 +1,51 @@
-// use axum::{
-//     extract::Json,
-//     response::Html,
-//     routing::post,
-//     routing::get,
-//     Router,
-// };
-// use serde::Deserialize;
-
-// #[derive(Deserialize)]
-// struct GetText {
-//     line: String
-// }
-
+use axum::{
+    extract::Json,
+    response::{Html, Response, IntoResponse},
+    routing::post,
+    routing::get,
+    Router,
+};
+use serde::Deserialize;
 use regex::Regex;
 use std::time::Instant;
 
+#[derive(Deserialize)]
+struct GetText {
+    line: String
+}
 
-// async fn home() -> Html<&'static str> {
-//     Html("<html><body>Hello <b>Woooooooorld!</b></body></html>")
-// }
 
-// async fn get_text(Json(GetText { line }): Json<GetText>) -> Html<&'static str> {
-//     let output = send_to_purgatory(&line);
-//     Html(format!("Output: {}", output.as_str()))
-// }
+async fn root() -> Html<&'static str> {
+    Html(include_str!("static/index.html"))
+}
+async fn lib() -> Html<&'static str> {
+    Html(include_str!("lib/htmx.min.js"))
+}
+async fn styles() -> Html<&'static str> {
+    Html(include_str!("static/styles.css"))
+}
+async fn navbar() -> Html<&'static str> {
+    Html(include_str!("components/navbar.html"))
+}
+
+// Json arguments: Json(GetText { line }): Json<GetText>
+// Html args: Html(GetText { line }): Html<GetText>
+async fn lsp(Html(GetText { line }): Html<GetText>) -> Html<&'static str> {
+    let total_time = Instant::now(); // Benchmarking
+
+    println!("New text: {}", line);
+    let text: &'static str = string_variable_parser(line);
+    
+    let total_end_time = Instant::now(); // Benchmarking
+    let elapsed_time = total_end_time.duration_since(total_time);
+    let the_end_timer = elapsed_time.as_secs_f64();
+    println!("Total time taken: {}", the_end_timer);
+
+    Html(format!("{}", &text))
+}
 
 #[tokio::main]
 async fn main() {
-
-    let html_var = r#"<span class="variable">"#;
-    let html_var_err = r#"<span class="variable_error">"#;
-    let html_string = r#"<span class="string">"#;
-
-    let html_end = r#"</span>"#;
-
-    let mut text = r#"
-    $strng = "Hello";
-    if ($string == "Hello") {
-        echo 'Hi!!';
-    }
-    if ($confirm = "Test") {
-        echo 'Confirmed';
-    }
-
-    test();
-    "#.to_string();
-
-    println!("Issues:");
-    let total_time = Instant::now();
-
-    let mut updates: Vec<Vec<usize>> = Vec::new();
-
-    // Variables
-    // 0 - Highlighting
-    // 1 - Errors
-    let start_time = Instant::now();
-    updates.append(&mut variable_check(&text));
-    let end_time = Instant::now();
-    let elapsed_time = end_time.duration_since(start_time);
-    let variable_timer = elapsed_time.as_secs_f64();
-    println!("Variables time elapsed: {}", variable_timer);
 
     // let start_time = Instant::now();
     // let delimiters = delimiter_check(text);
@@ -79,6 +65,39 @@ async fn main() {
     // let elapsed_time = end_time.duration_since(start_time);
     // let condition_timer = elapsed_time.as_secs_f64();
 
+    // let start_time = Instant::now();
+    // let functions = function_check(&text);
+    // let end_time = Instant::now();
+    // let elapsed_time = end_time.duration_since(start_time);
+    // let function_timer = elapsed_time.as_secs_f64();
+
+    // Router
+    let app: Router = Router::new()
+        .route("/", get(root))
+        .route("/lib", get(lib))
+        .route("/lsp", post(lsp))
+        .route("/styles", get(styles))
+        .route("/navbar", get(navbar));
+
+    axum::Server::bind(&"127.0.0.1:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+/* ********************/
+/*   HTML Inserters   */
+/* ********************/
+fn string_variable_parser(mut text: String) -> &'static str {
+
+    let mut updates: Vec<Vec<usize>> = Vec::new();
+
+    let html_var = r#"<span class="variable">"#;
+    let html_var_err = r#"<span class="variable_error">"#;
+    let html_string = r#"<span class="string">"#;
+
+    let html_end = r#"</span>"#;
+
     // Strings
     let start_time = Instant::now();
     updates.append(&mut single_string_check(&text));
@@ -88,56 +107,51 @@ async fn main() {
     let string_timer = elapsed_time.as_secs_f64();
     println!("String time elapsed: {}", string_timer);
 
-    // let start_time = Instant::now();
-    // let functions = function_check(&text);
-    // let end_time = Instant::now();
-    // let elapsed_time = end_time.duration_since(start_time);
-    // let function_timer = elapsed_time.as_secs_f64();
+    // Variables
+    let start_time = Instant::now();
+    updates.append(&mut variable_check(&text));
+    let end_time = Instant::now();
+    let elapsed_time = end_time.duration_since(start_time);
+    let variable_timer = elapsed_time.as_secs_f64();
+    println!("Variables time elapsed: {}", variable_timer);
 
     // Create the new text string
-    updates.sort_by(|a, b| a.cmp(b));
-    for update in updates.iter().rev() {
-
+    updates.sort_by(|a, b| b.cmp(a));
+    for update in updates.iter() {
         // Variable highlight
         if update[2] == 0 {
             println!("Variable found {}, {}", update[0], update[1]);
+            text.insert_str(update[1], html_end);
+            text.insert_str(update[0], html_var);
         }
         // Variable highlight + error
         else if update[2] == 1 {
-            println!("Variables {}, {} need to be declared ", update[0], update[1])
+            println!("Variables {}, {} need to be declared ", update[0], update[1]);
+            text.insert_str(update[1], html_end);
+            text.insert_str(update[0], html_var_err);
         }
         // String highlight ''
         else if update[2] == 2 {
-            println!("Single quote string found {}, {}", update[0], update[1])
+            println!("Single quote string found {}, {}", update[0], update[1]);
+            text.insert_str(update[1], html_end);
+            text.insert_str(update[0], html_string);
         }
         // String highlight ""
         else if update[2] == 3 {
-            println!("Double quote string found {}, {}", update[0], update[1])
+            println!("Double quote string found {}, {}", update[0], update[1]);
+            text.insert_str(update[1], html_end);
+            text.insert_str(update[0], html_string);
         }
-        
+        else {
+            continue;
+        }
     }
 
-    // Done!
-    let total_end_time = Instant::now();
-    let elapsed_time = total_end_time.duration_since(total_time);
-    let the_end_timer = elapsed_time.as_secs_f64();
-    println!("Total time taken: {}", the_end_timer);
-
-    println!("New text: {}", text);
-
-
-    // let app = Router::new()
-    //     .route("/", get(home))
-    //     .route("/testing", post(get_text));
-
-    // axum::Server::bind(&"127.0.0.1:3000".parse().unwrap())
-    //     .serve(app.into_make_service())
-    //     .await
-    //     .unwrap();
+    return &text;
 }
 
 /* ********************/
-/* Checks start here! */
+/*      Regex         */
 /* ********************/
 
 fn variable_check(text: &str) -> Vec<Vec<usize>> {
@@ -217,12 +231,9 @@ fn single_string_check(text: &str) -> Vec<Vec<usize>> {
 
     let small_string_reg = Regex::new(r"(?s)'.*?'").unwrap(); // Regex: Anything in between ''
 
-    for string in small_string_reg.find_iter(text) {
-
+    for string in small_string_reg.find_iter(&text) {
         let small_string_vec = vec![string.start(), string.end(), single_strings_code];
         strings.push(small_string_vec);
-
-        println!("Found a string: {}", string.as_str());
     }
 
     return strings
@@ -234,12 +245,9 @@ fn double_string_check(text: &str) -> Vec<Vec<usize>> {
 
     let big_string_reg = Regex::new(r#"(?s)".*?""#).unwrap(); // Regex: Anything inbetween "" 
 
-    for string in big_string_reg.find_iter(text) {
-
+    for string in big_string_reg.find_iter(&text) {
         let small_string_vec = vec![string.start(), string.end(), double_strings_code];
         strings.push(small_string_vec);
-
-        println!("Found a string: {}", string.as_str());
     }
 
     return strings
