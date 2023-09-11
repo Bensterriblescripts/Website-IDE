@@ -30,18 +30,15 @@ async fn navbar() -> Html<&'static str> {
 
 // Json arguments: Json(GetText { line }): Json<GetText>
 // Html args: Html(GetText { line }): Html<GetText>
-async fn lsp(Html(GetText { line }): Html<GetText>) -> Html<&'static str> {
+async fn lsp() -> Html<String> {
     let total_time = Instant::now(); // Benchmarking
-
-    println!("New text: {}", line);
-    let text: &'static str = string_variable_parser(line);
     
     let total_end_time = Instant::now(); // Benchmarking
     let elapsed_time = total_end_time.duration_since(total_time);
     let the_end_timer = elapsed_time.as_secs_f64();
     println!("Total time taken: {}", the_end_timer);
 
-    Html(format!("{}", &text))
+    Html(format!("Hello there!"))
 }
 
 #[tokio::main]
@@ -75,7 +72,7 @@ async fn main() {
     let app: Router = Router::new()
         .route("/", get(root))
         .route("/lib", get(lib))
-        .route("/lsp", post(lsp))
+        .route("/lsp", get(lsp))
         .route("/styles", get(styles))
         .route("/navbar", get(navbar));
 
@@ -88,7 +85,7 @@ async fn main() {
 /* ********************/
 /*   HTML Inserters   */
 /* ********************/
-fn string_variable_parser(mut text: String) -> &'static str {
+fn string_variable_parser(mut text: String) -> String {
 
     let mut updates: Vec<Vec<usize>> = Vec::new();
 
@@ -147,7 +144,7 @@ fn string_variable_parser(mut text: String) -> &'static str {
         }
     }
 
-    return &text;
+    return text;
 }
 
 /* ********************/
