@@ -1,6 +1,6 @@
 use axum::{
     extract::Json,
-    response::{Html, Response, IntoResponse},
+    response::Html,
     routing::post,
     routing::get,
     Router,
@@ -46,6 +46,13 @@ async fn lsp(payload: Json<EditorContent>) -> Html<String> {
     let elapsed_time = total_end_time.duration_since(var_parsed_time);
     let var_parsed_timer = elapsed_time.as_secs_f64();
     println!(":: String/Variable Parsed Time: {}", var_parsed_timer);
+
+    let var_parsed_time = Instant::now();
+    let new_text = function_parser(new_text);
+    let total_end_time = Instant::now();
+    let elapsed_time = total_end_time.duration_since(var_parsed_time);
+    let var_parsed_timer = elapsed_time.as_secs_f64();
+    println!(":: Function Parsed Time: {}", var_parsed_timer);
     
     let total_end_time = Instant::now();
     let elapsed_time = total_end_time.duration_since(total_time);
@@ -72,7 +79,7 @@ async fn main() {
 }
 
 /* ********************/
-/*   HTML Inserters   */
+/*   HTML Parsers     */
 /* ********************/
 
 fn html_parser(text: &str) -> String {
@@ -137,6 +144,19 @@ fn string_variable_parser(mut text: String) -> String {
         else {
             continue;
         }
+    }
+
+    return text;
+}
+fn function_parser(text: String) -> String {
+
+    let html_func = r#"<span class="function" contenteditable="false">"#;
+    let html_end = r#"</span>"#;
+
+    let function_reg = Regex::new(r"(?s)[^\$][a-zA-Z_][a-zA-Z0-9_]*\(.*?\)").unwrap(); // Regex: Any word ending in ()
+
+    for function in function_reg.find_iter(&text) {
+        println!("Found function: {}", function.as_str());
     }
 
     return text;
@@ -241,19 +261,3 @@ fn double_string_check(text: &str) -> Vec<Vec<usize>> {
 
     return strings
 }
-
-// fn function_check(text: &str) -> Vec<String> {
-
-    // let mut functions = Vec::new();
-
-    // let function_reg = Regex::new(r"(?s)[^\$][a-zA-Z_][a-zA-Z0-9_]*\(.*?\)").unwrap(); // Regex: Any word ending in ()
-
-    // for function in function_reg.find_iter(text) {
-    //     let function_string = function.as_str().to_string(); // Highlighting: Functions
-    //     functions.push(function_string);
-
-    //     println!("Found function: {}", function.as_str());
-    // }
-
-    // return functions;
-// }
