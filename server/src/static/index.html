@@ -8,10 +8,55 @@
     <body>
         <div hx-get="/navbar" hx-trigger="load once"></div>
         <div class="main">
-            <textarea id="editor"
-             hx-post="/lsp"  name="content"  hx-target="#editor" hx-trigger="keyup[keyCode==13]" 
-            placeholder="Write your php in here...">
-            </textarea>
+
+            <form id="submitter" name="content">
+                <div id="editor" contenteditable="true">
+                </div>
+            </form>
+
+            <script>
+                // Listener on POST (Enter key)
+                document.getElementById('submitter').addEventListener("keyup", function(event) {
+                    if (event.key === ";" || event.key === "\"" || event.key === "$") {
+                        const element = document.getElementById('editor');
+                        const rawdata = element.innerHTML;
+                        console.log("Payload: " + rawdata);
+
+                        const jsonPayload = {
+                            content: rawdata
+                        }
+
+                        fetch("/lsp", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(jsonPayload)
+                        })
+                        .then(response => response.text())
+                        .then(data => {
+                            console.log("Raw Response: " + data);
+                            element.innerHTML = data;
+
+                            element.focus();
+                            const range = document.createRange();
+                            range.selectNodeContents(element);
+                            range.collapse(false);
+                            const selection = window.getSelection();
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        })
+                        .catch(error => {
+                            console.error("Error:", error);
+                        });
+                    }
+                });
+
+                // Listener on editable div
+                // document.getElementsById('submitter').addEventListener("keyup", function(event) {
+
+                // });
+            </script>
         </div>
     </body>
 </html>

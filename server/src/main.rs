@@ -9,9 +9,9 @@ use serde::Deserialize;
 use regex::Regex;
 use std::time::Instant;
 
-#[derive(Deserialize)]
-struct GetText {
-    line: String
+#[derive(Deserialize, Debug)]
+struct EditorContent {
+    content: String
 }
 
 
@@ -28,51 +28,40 @@ async fn navbar() -> Html<&'static str> {
     Html(include_str!("components/navbar.html"))
 }
 
-// Json arguments: Json(GetText { line }): Json<GetText>
-// Html args: Html(GetText { line }): Html<GetText>
-async fn lsp() -> Html<String> {
-    let total_time = Instant::now(); // Benchmarking
+async fn lsp(payload: Json<EditorContent>) -> Html<String> {
+    let total_time = Instant::now();
     
-    let total_end_time = Instant::now(); // Benchmarking
+    let text = payload.content.to_string();
+
+    let parsed_time = Instant::now();
+    let parsed_text = html_parser(text.as_str());
+    let total_end_time = Instant::now();
+    let elapsed_time = total_end_time.duration_since(parsed_time);
+    let parsed_timer = elapsed_time.as_secs_f64();
+    println!(":: HTML Parsed Time: {}", parsed_timer);
+
+    let var_parsed_time = Instant::now();
+    let new_text = string_variable_parser(parsed_text);
+    let total_end_time = Instant::now();
+    let elapsed_time = total_end_time.duration_since(var_parsed_time);
+    let var_parsed_timer = elapsed_time.as_secs_f64();
+    println!(":: String/Variable Parsed Time: {}", var_parsed_timer);
+    
+    let total_end_time = Instant::now();
     let elapsed_time = total_end_time.duration_since(total_time);
     let the_end_timer = elapsed_time.as_secs_f64();
-    println!("Total time taken: {}", the_end_timer);
+    println!(":: Total time taken: {}", the_end_timer);
 
-    Html(format!("Hello there!"))
+    Html(new_text)
 }
 
 #[tokio::main]
 async fn main() {
-
-    // let start_time = Instant::now();
-    // let delimiters = delimiter_check(text);
-    // let end_time = Instant::now();
-    // let elapsed_time = end_time.duration_since(start_time);
-    // let delimiter_timer = elapsed_time.as_secs_f64();
-
-    // let start_time = Instant::now();
-    // let semicolons = semicolon_check(text);
-    // let end_time = Instant::now();
-    // let elapsed_time = end_time.duration_since(start_time);
-    // let semicolon_timer = elapsed_time.as_secs_f64();
-
-    // let start_time = Instant::now();
-    // let conditions = condition_check(text);
-    // let end_time = Instant::now();
-    // let elapsed_time = end_time.duration_since(start_time);
-    // let condition_timer = elapsed_time.as_secs_f64();
-
-    // let start_time = Instant::now();
-    // let functions = function_check(&text);
-    // let end_time = Instant::now();
-    // let elapsed_time = end_time.duration_since(start_time);
-    // let function_timer = elapsed_time.as_secs_f64();
-
     // Router
     let app: Router = Router::new()
         .route("/", get(root))
         .route("/lib", get(lib))
-        .route("/lsp", get(lsp))
+        .route("/lsp", post(lsp))
         .route("/styles", get(styles))
         .route("/navbar", get(navbar));
 
@@ -85,14 +74,24 @@ async fn main() {
 /* ********************/
 /*   HTML Inserters   */
 /* ********************/
+
+fn html_parser(text: &str) -> String {
+
+    let html_class_var_err = Regex::new(r#"<span class="variable_error" contenteditable="(false|true)">"#).unwrap();
+    let html_reg = Regex::new(r#"(?s)<[^>]*>"#).unwrap(); // Regex: Find all elements <*>
+
+    let rawtext = html_class_var_err.replace_all(text, "");
+    let rawtext = html_reg.replace_all(&rawtext, "");
+
+    return rawtext.to_string();
+}
 fn string_variable_parser(mut text: String) -> String {
 
     let mut updates: Vec<Vec<usize>> = Vec::new();
 
-    let html_var = r#"<span class="variable">"#;
-    let html_var_err = r#"<span class="variable_error">"#;
+    let html_var = r#"<span class="variable" contenteditable="false">"#;
+    let html_var_err = r#"<span class="variable_error" contenteditable="false">"#;
     let html_string = r#"<span class="string">"#;
-
     let html_end = r#"</span>"#;
 
     // Strings
@@ -117,25 +116,21 @@ fn string_variable_parser(mut text: String) -> String {
     for update in updates.iter() {
         // Variable highlight
         if update[2] == 0 {
-            println!("Variable found {}, {}", update[0], update[1]);
             text.insert_str(update[1], html_end);
             text.insert_str(update[0], html_var);
         }
         // Variable highlight + error
         else if update[2] == 1 {
-            println!("Variables {}, {} need to be declared ", update[0], update[1]);
             text.insert_str(update[1], html_end);
             text.insert_str(update[0], html_var_err);
         }
         // String highlight ''
         else if update[2] == 2 {
-            println!("Single quote string found {}, {}", update[0], update[1]);
             text.insert_str(update[1], html_end);
             text.insert_str(update[0], html_string);
         }
         // String highlight ""
         else if update[2] == 3 {
-            println!("Double quote string found {}, {}", update[0], update[1]);
             text.insert_str(update[1], html_end);
             text.insert_str(update[0], html_string);
         }
@@ -166,14 +161,11 @@ fn variable_check(text: &str) -> Vec<Vec<usize>> {
         if let Some(_capture) = call.find(&text) {
             let variable_vec = vec![variable.start(), variable.end(), variable_highlight_code];
             variables.push(variable_vec);
-            println!("Variable found at: {}", variable.as_str());
             continue
         }
 
         let variable_vec = vec![variable.start(), variable.end(), variable_error_code];
         variables.push(variable_vec);
-
-        println!("Variable needs to be declared: {}", variable.as_str());
     }
 
     return variables;
