@@ -17,7 +17,7 @@
             <script>
                 // Listener on POST (Enter key)
                 document.getElementById('submitter').addEventListener("keyup", function(event) {
-                    if (event.key === ";" || event.key === "\"" || event.key === "$" || event.key === "enter" || event.key === "space") {
+                    if (event.key === ";" || event.key === "\"" || event.key === "$" || event.key === "Enter" || event.key === " ") {
                         const element = document.getElementById('editor');
                         const rawdata = element.innerHTML;
                         console.log("Payload: " + rawdata);
